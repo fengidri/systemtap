@@ -1,0 +1,7 @@
+#probe process("/home/vagrant/trafficserver/trafficserver-4.2.3/ats/bin/traffic_server").function("ink_aio_read")
+probe process(@1).function("ink_aio_read")
+{
+    #printf("%s\n", probefunc());
+    printf("ink_aio_read: offset:%ld len:%ld\n", $op->aiocb->u->c->offset,
+                                $op->aiocb->u->c->nbytes);
+}
