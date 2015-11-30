@@ -1,0 +1,15 @@
+# print ubacktrace
+# usage: stap ubacktrace.stp @process @function
+
+probe begin{
+    printf("Start %s %s.......\n", @1, @2);
+}
+probe process(@1).function(@2)
+{
+     printf(" --------- backtrace -------------- \n");
+#    print_backtrace();
+   # printf("\n");
+#    print_usyms(ubacktrace());
+     print_ustack(ubacktrace());
+     printf("\n");
+}
