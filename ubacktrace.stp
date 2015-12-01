@@ -2,7 +2,9 @@
 # usage: stap ubacktrace.stp @process @function
 
 probe begin{
-    printf("Start %s %s.......\n", @1, @2);
+    printf("@Start .......\n");
+    printf("@process:%s\n", @1);
+    printf("@probe:%s\n", @2);
 }
 probe process(@1).function(@2)
 {

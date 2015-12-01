@@ -7,8 +7,7 @@
 import sys
 import re
 import os
-process = sys.argv[2]
-def handle(line):
+def handle(line, process):
     regex = "(0x[0-9a-z]+) : ([^\[]+)\+.+? \[(.+)\]"
     match = re.search(regex, line)
     if not match:
@@ -17,15 +16,23 @@ def handle(line):
 
     fun = os.popen("c++filt %s" % match.group(2)).read()
     fun = fun.strip()
-    pos = os.popen("addr2line -e %s %s"  % (process, match.group(1))).read()
-    pos = pos.strip()
+    if process:
+        pos = os.popen("addr2line -e %s %s"  % (process, match.group(1))).read()
+        pos = pos.strip()
+    else:
+        pos = ''
 
     fun = "\033[31m%s" % fun.replace('(', '\033[0m(')
     print fun, pos
 
 
 for line in open(sys.argv[1]).readlines():
-    handle(line)
+    process = None
+    if line.startswith("@process:"):
+        process = line.split(':')[-1].strip()
+        continue
+
+    handle(line, process)
 
 
 
