@@ -1,0 +1,72 @@
+global atsname = "[ET_NET 0]"
+global Address
+probe begin {
+    printf("=============begin============\n")
+}
+
+probe process(@1).function("ats_malloc").return
+{
+    if (pid2execname(pid()) == atsname){
+        Address[ns_tid(), "malloc", $return] = $size;
+        //$printf("%s:%s: ptr: 0x%lx size:%ld \n", execname(), ppfunc(), $return,
+        //$$size);
+    }
+}
+
+probe process(@1).function("ats_calloc").return
+{
+        Address[ns_tid(), "malloc", $return] = $elsize;
+    //    printf("%s:%s: ptr: 0x%lx size:%ld\n", execname(), ppfunc(), $return, $elsize);
+}
+
+probe process(@1).function("ats_realloc").return
+{
+        Address[ns_tid(), "malloc", $return] = $size;
+
+    //$if (pid2execname(pid()) == atsname){
+    //$    printf("%s:%s: ptr: 0x%lx size:%ld\n", execname(), ppfunc(), $return, $size);
+    //$}
+}
+
+probe process(@1).function("ats_free").call
+{
+        delete Address[ns_tid(), "malloc", s64_arg(1)];
+        #printf("%s:%s: ptr: 0x%lx \n", execname(), ppfunc(), s64_arg(1));
+ #       printf("%s:%s: ptr: \n", execname(), ppfunc());
+}
+
+probe process(@1).function("ats_memalign_free").call
+{
+        printf("%s:%s: ptr: 0x%lx \n", execname(), ppfunc(), $ptr);
+}
+
+
+probe vm.mmap
+{
+    if (pid2execname(pid()) == atsname){
+        printf("%s:%s: ptr: 0x%lx size: %ld\n", name, ppfunc(), address, length);
+    }
+
+}
+
+probe timer.s(5){
+    total = 0;
+    printf("=====================================\n");
+    foreach ([tid, name, address] in Address){
+        size = Address[tid, name, address];
+        printf("0x%lx: size: %d\n", address, size);
+        total = total + size;
+    }
+    printf("Total: %d byte\n", total);
+}
+
+
+
+
+
+
+
+
+
+
+

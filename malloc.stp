@@ -1,0 +1,37 @@
+#probe begin{
+#    printf("@Start .......\n");
+#    printf("@process:%s\n", @1);
+#}
+
+#probe vm.mmap, vm.brk
+#{
+#    if (execname() == @1){
+#        printf("%s:%s: 0x%lx %ld\n", execname(), name, address, length);
+#    }
+#}
+#
+#probe process(@1).function("mmap").return
+#{
+#    printf("%s: %s %s\n", name, address, length);
+#}
+
+probe begin {
+    printf("=============begin============\n")
+}
+
+//记录内存分配和释放的计数关联数组
+//global g_mem_ref_tbl
+//记录内存分配和释放的调用堆栈关联数组
+//global g_mem_bt_tbl
+
+//probe process("/lib/libc.so.6").function("__libc_malloc").return, process("/lib/libc.so.6").function("__libc_calloc").return {
+//    if (execname() == @1){
+//        printf("%s: 0x%lx \n", execname(), $return);
+//    }
+//}
+
+
+probe process(@1).function("ats_malloc").return//, process(@1).function("ats_calloc").return
+{
+        printf("%s: 0x%lx \n", execname(), $return);
+}
