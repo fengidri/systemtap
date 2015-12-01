@@ -1,63 +1,72 @@
-global atsname = "[ET_NET 0]"
 global Address
+
 probe begin {
     printf("=============begin============\n")
 }
 
+function append(flag, addr, size){
+    name = pid2execname(pid());
+    if (name == "[ET_NET 0]" || name == "traffic_server"){
+        Address[ns_tid(), flag, addr] = size;
+    }
+}
+
+function free(flag, addr){
+        delete Address[ns_tid(), flag, addr];
+}
+
 probe process(@1).function("ats_malloc").return
 {
-    if (pid2execname(pid()) == atsname){
-        Address[ns_tid(), "malloc", $return] = $size;
-        //$printf("%s:%s: ptr: 0x%lx size:%ld \n", execname(), ppfunc(), $return,
-        //$$size);
-    }
+    append("malloc", $return, $size);
 }
 
 probe process(@1).function("ats_calloc").return
 {
-        Address[ns_tid(), "malloc", $return] = $elsize;
-    //    printf("%s:%s: ptr: 0x%lx size:%ld\n", execname(), ppfunc(), $return, $elsize);
+    append("malloc", $return, $elsize);
 }
 
 probe process(@1).function("ats_realloc").return
 {
-        Address[ns_tid(), "malloc", $return] = $size;
-
-    //$if (pid2execname(pid()) == atsname){
-    //$    printf("%s:%s: ptr: 0x%lx size:%ld\n", execname(), ppfunc(), $return, $size);
-    //$}
+    append("malloc", $return, $size);
 }
 
 probe process(@1).function("ats_free").call
 {
-        delete Address[ns_tid(), "malloc", s64_arg(1)];
-        #printf("%s:%s: ptr: 0x%lx \n", execname(), ppfunc(), s64_arg(1));
- #       printf("%s:%s: ptr: \n", execname(), ppfunc());
+    free("malloc", s64_arg(1));
 }
 
 probe process(@1).function("ats_memalign_free").call
 {
-        printf("%s:%s: ptr: 0x%lx \n", execname(), ppfunc(), $ptr);
+    free("malloc", $ptr);
 }
 
 
 probe vm.mmap
 {
-    if (pid2execname(pid()) == atsname){
-        printf("%s:%s: ptr: 0x%lx size: %ld\n", name, ppfunc(), address, length);
-    }
-
+    append("mmap", address, length);
+}
+probe vm.munmap
+{
+    free("mmap", address);
 }
 
 probe timer.s(5){
-    total = 0;
+    malloc = 0;
+    mmap = 0;
     printf("=====================================\n");
-    foreach ([tid, name, address] in Address){
-        size = Address[tid, name, address];
+    foreach ([tid, flag, address] in Address){
+        size = Address[tid, flag, address];
         printf("0x%lx: size: %d\n", address, size);
-        total = total + size;
+
+        if (flag == "malloc")
+            malloc += size;
+        if (flag == "mmap")
+            mmap += size;
     }
-    printf("Total: %d byte\n", total);
+
+    printf("Malloc: %d byte\n", malloc);
+    printf("Mmap: %d byte\n", mmap);
+    printf("Total: %d byte\n", malloc + mmap);
 }
 
 
