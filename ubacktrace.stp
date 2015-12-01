@@ -9,7 +9,8 @@ probe process(@1).function(@2)
      printf(" --------- backtrace -------------- \n");
 #    print_backtrace();
    # printf("\n");
-#    print_usyms(ubacktrace());
-     print_ustack(ubacktrace());
+    #print_usyms(ubacktrace());
+#     print_ustack(ubacktrace());
+     print_ubacktrace();
      printf("\n");
 }
