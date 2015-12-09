@@ -1,0 +1,43 @@
+global from_port = 1989;
+global start = 0;
+
+probe begin
+{
+    printf("ready go: Hz: %d\n", HZ());
+}
+
+probe kernel.function("retransmits_timed_out").return
+{
+    if (from_port == $sk->__sk_common->skc_num && 0 == $syn_set){
+        if (0 == start){
+            start = gettimeofday_ms();
+            printf("Init Start *** %ld\n", start);
+        }
+
+        printf("%ld: from:%d > dport:%d boundary:%d "
+                "return:%d "
+                "rdx(timeout):%u "
+                "flag:%d"
+                "\n",
+
+                gettimeofday_ms(),
+                $sk->__sk_common->skc_num,
+                ntohs($sk->__sk_common->skc_dport),
+                $boundary,
+                $return,
+                register("edx"),
+                $sk->sk_flags);
+    }
+}
+
+probe kernel.function("tcp_write_err"),kernel.function("tcp_done")
+{
+    if (from_port == $sk->__sk_common->skc_num){
+        printf("**** %ld\n", gettimeofday_ms() - start);
+        print_backtrace();
+
+        start = 0;
+    }
+}
+
+
