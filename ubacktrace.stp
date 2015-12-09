@@ -6,13 +6,11 @@ probe begin{
     printf("@process:%s\n", @1);
     printf("@probe:%s\n", @2);
 }
-probe process(@1).function(@2)
+probe process(@1).function(@2).return
 {
      printf(" --------- backtrace -------------- \n");
-#    print_backtrace();
-   # printf("\n");
-    #print_usyms(ubacktrace());
-#     print_ustack(ubacktrace());
+     printf("%s\n", $$locals$$);
+     printf("%s\n", $$parms$$);
      print_ubacktrace();
      printf("\n");
 }
